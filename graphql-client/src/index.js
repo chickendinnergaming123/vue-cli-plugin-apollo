@@ -2,9 +2,9 @@ import { ApolloClient } from 'apollo-client'
 import { split, from } from 'apollo-link'
 import { createUploadLink } from 'apollo-upload-client'
 import { InMemoryCache } from 'apollo-cache-inmemory'
-import { SubscriptionClient } from 'subscriptions-transport-ws'
+import { createClient } from 'graphql-ws'
 import MessageTypes from 'subscriptions-transport-ws/dist/message-types'
-import { WebSocketLink } from 'apollo-link-ws'
+import { GraphQLWsLink } from '@apollo/client/link/subscriptions'
 import { getMainDefinition } from 'apollo-utilities'
 import { createPersistedQueryLink } from 'apollo-link-persisted-queries'
 import { setContext } from 'apollo-link-context'
@@ -119,8 +119,9 @@ export function createApolloClient ({
 
     // Web socket
     if (wsEndpoint) {
-      wsClient = new SubscriptionClient(wsEndpoint, {
-        reconnect: true,
+      wsClient = createClient({
+        url: wsEndpoint,
+        shouldRetry: true,
         connectionParams: () => {
           const Authorization = getAuth(tokenName)
           return Authorization ? { Authorization, headers: { Authorization } } : {}
@@ -128,7 +129,7 @@ export function createApolloClient ({
       })
 
       // Create the subscription websocket link
-      const wsLink = new WebSocketLink(wsClient)
+      const wsLink = new GraphQLWsLink(wsClient)
 
       if (disableHttp) {
         link = link ? link.concat(wsLink) : wsLink
